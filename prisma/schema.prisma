@@ -1,0 +1,167 @@
+// SoaLatihan — Prisma Schema
+// Database: PostgreSQL
+// ORM: Prisma
+//
+// Tables: User, Question, ExamSession, ExamBatch, StudyAttempt, AppConfig, StreakLog
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum Role {
+  ADMIN
+  SISWA
+}
+
+enum Tingkat {
+  SD
+  SMP
+  SMA
+}
+
+enum Level {
+  OSNK
+  OSNP
+  SEMIFINAL
+  FINAL
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  SHORT_ANSWER
+  ESSAY
+}
+
+enum ExamSessionStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
+}
+
+// ============================================================
+// MODELS
+// ============================================================
+
+model User {
+  id             Int       @id @default(autoincrement())
+  name           String
+  username       String    @unique
+  email          String?   @unique
+  password       String
+  role           Role      @default(SISWA)
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  streak         Int       @default(0)
+  lastActiveDate DateTime?
+
+  studyAttempts  StudyAttempt[]
+  examSessions   ExamSession[]
+  streakLogs     StreakLog[]
+
+  @@index([role])
+}
+
+model Question {
+  id                 Int           @id @default(autoincrement())
+  tingkat            Tingkat
+  level              Level
+  matpel             String
+  questionType       QuestionType
+  content           String
+  imageUrl           String?
+  options            Json          @default("[]")
+  correctOption      Int?
+  acceptableAnswers String[]
+  explanation        String
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  studyAttempts      StudyAttempt[]
+
+  @@index([tingkat])
+  @@index([level])
+  @@index([matpel])
+  @@index([tingkat, level, matpel])
+}
+
+model ExamSession {
+  id                Int               @id @default(autoincrement())
+  userId            Int
+  filter            Json
+  totalQuestions    Int
+  batchSize         Int               @default(10)
+  status            ExamSessionStatus @default(ACTIVE)
+  questionOrder     Int[]
+  currentBatchIndex Int               @default(0)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  batches           ExamBatch[]
+
+  @@index([userId])
+  @@index([userId, status])
+}
+
+model ExamBatch {
+  id           Int       @id @default(autoincrement())
+  sessionId    Int
+  batchIndex   Int
+  questionIds  Int[]
+  answers      Json      @default("{}")
+  score        Float     @default(0)
+  totalCorrect Int       @default(0)
+  totalWrong   Int       @default(0)
+  startedAt    DateTime  @default(now())
+  submittedAt  DateTime?
+
+  session      ExamSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@unique([sessionId, batchIndex])
+}
+
+model StudyAttempt {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  questionId  Int
+  userAnswer  String
+  isCorrect   Boolean
+  answeredAt  DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, answeredAt])
+  @@index([questionId])
+}
+
+model AppConfig {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  isEncrypted Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+}
+
+model StreakLog {
+  id       Int     @id @default(autoincrement())
+  userId   Int
+  date     DateTime
+  isActive Boolean @default(true)
+
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@unique([userId, date])
+}

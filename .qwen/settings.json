@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir *)",
+      "Bash(echo *)",
+      "Skill(soalatihan-design-patterns)"
+    ]
+  },
+  "$version": 4
+}
