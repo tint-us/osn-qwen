@@ -3,7 +3,12 @@
     "allow": [
       "Bash(mkdir *)",
       "Bash(echo *)",
-      "Skill(soalatihan-design-patterns)"
+      "Skill(soalatihan-design-patterns)",
+      "Agent(Explore)",
+      "Bash(node *)",
+      "Bash(npm *)",
+      "Bash(ls *)",
+      "Bash(npx *)"
     ]
   },
   "$version": 4

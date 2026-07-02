@@ -1,0 +1,67 @@
+# ============================================================
+# SoaLatihan — Docker Compose
+# Production deployment with PostgreSQL + Next.js app
+# ============================================================
+# Usage:
+#   docker compose up -d          → start all services
+#   docker compose down            → stop all services
+#   docker compose logs -f app     → tail app logs
+#   docker compose logs -f db       → tail database logs
+#
+# Custom port:
+#   APP_PORT=8080 docker compose up -d
+# ============================================================
+
+services:
+  # ----------------------------------------------------------
+  # Database: PostgreSQL 16
+  # ----------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-soalatihan}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-password}
+      POSTGRES_DB: ${POSTGRES_DB:-soalatihan}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-soalatihan} -d ${POSTGRES_DB:-soalatihan}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - soalatihan-net
+
+  # ----------------------------------------------------------
+  # Application: Next.js (standalone production build)
+  # ----------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:${APP_PORT:-3000}"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-soalatihan}:${POSTGRES_PASSWORD:-change-this-password}@db:5432/${POSTGRES_DB:-soalatihan}
+      HOSTNAME: 0.0.0.0
+      PORT: ${APP_PORT:-3000}
+    volumes:
+      - ./public/uploads:/app/public/uploads
+    networks:
+      - soalatihan-net
+
+networks:
+  soalatihan-net:
+    driver: bridge
+
+volumes:
+  pgdata:
+    driver: local
